@@ -51,8 +51,8 @@ const clampNumber = (value: number, min: number, max: number) => {
 
 function App() {
   const [logs, setLogs] = useState<TalktimeLog[]>([])
-  const [hoursInput, setHoursInput] = useState(0)
-  const [minutesInput, setMinutesInput] = useState(30)
+  const [hoursInput, setHoursInput] = useState('')
+  const [minutesInput, setMinutesInput] = useState('')
   const [talkedAbout, setTalkedAbout] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -68,6 +68,7 @@ function App() {
   const progressPercent = Math.max(0, Math.min(100, Math.round((remainingMinutes / WEEKLY_MINUTES) * 100)))
   const remainingHours = Math.max(0, Math.floor(remainingMinutes / 60))
   const remainingMins = Math.max(0, remainingMinutes % 60)
+  const canSubmit = hoursInput.trim() !== '' || minutesInput.trim() !== '' || talkedAbout.trim() !== ''
   const resetDateLabel = end.toLocaleString('en-US', {
     weekday: 'short',
     day: 'numeric',
@@ -110,8 +111,8 @@ function App() {
     setSaving(true)
     setError('')
 
-    const safeHours = clampNumber(hoursInput, 0, MAX_HOURS_PER_LOG)
-    const safeMinutes = clampNumber(minutesInput, 0, MAX_MINUTES_PER_LOG)
+    const safeHours = clampNumber(Number(hoursInput || 0), 0, MAX_HOURS_PER_LOG)
+    const safeMinutes = clampNumber(Number(minutesInput || 0), 0, MAX_MINUTES_PER_LOG)
     const spentMinutes = safeHours * 60 + safeMinutes
     if (spentMinutes <= 0) {
       setError('Please add at least 1 minute of talk time.')
@@ -135,8 +136,8 @@ function App() {
       return
     }
 
-    setHoursInput(0)
-    setMinutesInput(30)
+    setHoursInput('')
+    setMinutesInput('')
     setTalkedAbout('')
     await loadLogs()
     setSaving(false)
@@ -277,15 +278,25 @@ function App() {
                 type="number"
                 min={0}
                 max={MAX_HOURS_PER_LOG}
+                step={1}
                 value={hoursInput}
                 inputMode="numeric"
-                onChange={(event) =>
-                  setHoursInput(clampNumber(Number(event.target.value), 0, MAX_HOURS_PER_LOG))
-                }
-                onBlur={(event) =>
-                  setHoursInput(clampNumber(Number(event.target.value), 0, MAX_HOURS_PER_LOG))
-                }
-                required
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  if (nextValue === '') {
+                    setHoursInput('')
+                    return
+                  }
+                  setHoursInput(String(clampNumber(Number(nextValue), 0, MAX_HOURS_PER_LOG)))
+                }}
+                onBlur={(event) => {
+                  const nextValue = event.target.value
+                  if (nextValue === '') {
+                    setHoursInput('')
+                    return
+                  }
+                  setHoursInput(String(clampNumber(Number(nextValue), 0, MAX_HOURS_PER_LOG)))
+                }}
               />
             </label>
             <div className="colon">:</div>
@@ -295,15 +306,25 @@ function App() {
                 type="number"
                 min={0}
                 max={MAX_MINUTES_PER_LOG}
+                step={1}
                 value={minutesInput}
                 inputMode="numeric"
-                onChange={(event) =>
-                  setMinutesInput(clampNumber(Number(event.target.value), 0, MAX_MINUTES_PER_LOG))
-                }
-                onBlur={(event) =>
-                  setMinutesInput(clampNumber(Number(event.target.value), 0, MAX_MINUTES_PER_LOG))
-                }
-                required
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  if (nextValue === '') {
+                    setMinutesInput('')
+                    return
+                  }
+                  setMinutesInput(String(clampNumber(Number(nextValue), 0, MAX_MINUTES_PER_LOG)))
+                }}
+                onBlur={(event) => {
+                  const nextValue = event.target.value
+                  if (nextValue === '') {
+                    setMinutesInput('')
+                    return
+                  }
+                  setMinutesInput(String(clampNumber(Number(nextValue), 0, MAX_MINUTES_PER_LOG)))
+                }}
               />
             </label>
           </div>
@@ -313,7 +334,7 @@ function App() {
             onChange={(event) => setTalkedAbout(event.target.value)}
             rows={3}
           />
-          <button type="submit" disabled={saving}>
+          <button type="submit" disabled={saving || !canSubmit}>
             {saving ? 'Recording...' : '✦ Record this call ✦'}
           </button>
         </form>
