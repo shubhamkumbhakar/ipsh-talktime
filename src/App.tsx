@@ -7,6 +7,7 @@ const WEEKLY_HOURS = 21
 const WEEKLY_MINUTES = WEEKLY_HOURS * 60
 const MAX_HOURS_PER_LOG = 23
 const MAX_MINUTES_PER_LOG = 59
+const tableName = import.meta.env.VITE_TABLE_NAME || 'talktime_logs'
 
 type TalktimeLog = {
   id: string
@@ -80,10 +81,11 @@ function App() {
     setError('')
 
     const { data, error: fetchError } = await supabase
-      .from('talktime_logs')
+      .from(tableName)
       .select('id, day, hours, talked_about, created_at')
       .gte('created_at', start.toISOString())
       .lt('created_at', end.toISOString())
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (fetchError) {
@@ -121,7 +123,7 @@ function App() {
     const hoursValue = Number((spentMinutes / 60).toFixed(2))
     const dayLabel = `${now.toLocaleDateString('en-US', { weekday: 'long' })} · ${now.toLocaleDateString()}`
 
-    const { error: insertError } = await supabase.from('talktime_logs').insert({
+    const { error: insertError } = await supabase.from(tableName).insert({
       day: dayLabel,
       hours: hoursValue,
       talked_about: talkedAbout.trim() || null,
@@ -144,14 +146,26 @@ function App() {
     setDeletingId(id)
     setError('')
 
-    const { error: deleteError } = await supabase.from('talktime_logs').delete().eq('id', id)
+    const deletedAt = new Date().toISOString()
+    const { data: deletedRows, error: deleteError } = await supabase
+      .from(tableName)
+      .update({ deleted_at: deletedAt })
+      .eq('id', id)
+      .is('deleted_at', null)
+      .select('id')
 
     if (deleteError) {
       setError(`Could not delete this log: ${deleteError.message}`)
       setDeletingId(null)
       return
     }
+    if (!deletedRows || deletedRows.length === 0) {
+      setError('Could not delete this log: it may already be archived or blocked by permissions.')
+      setDeletingId(null)
+      return
+    }
 
+    setLogs((currentLogs) => currentLogs.filter((log) => log.id !== id))
     await loadLogs()
     setDeletingId(null)
   }
@@ -160,18 +174,27 @@ function App() {
     setResetting(true)
     setError('')
 
-    const { error: resetError } = await supabase
-      .from('talktime_logs')
-      .delete()
+    const deletedAt = new Date().toISOString()
+    const { data: resetRows, error: resetError } = await supabase
+      .from(tableName)
+      .update({ deleted_at: deletedAt })
       .gte('created_at', start.toISOString())
       .lt('created_at', end.toISOString())
+      .is('deleted_at', null)
+      .select('id')
 
     if (resetError) {
       setError(`Could not reset this week: ${resetError.message}`)
       setResetting(false)
       return
     }
+    if (!resetRows) {
+      setError('Could not reset this week: no rows were updated.')
+      setResetting(false)
+      return
+    }
 
+    setLogs([])
     await loadLogs()
     setResetting(false)
   }
@@ -344,8 +367,8 @@ function App() {
             <h3 id="confirm-title">{confirmModal.type === 'delete' ? 'Delete this log?' : 'Reset this week?'}</h3>
             <p>
               {confirmModal.type === 'delete'
-                ? 'This talk entry will be removed permanently.'
-                : 'This will delete all logs from the current week.'}
+                ? 'This talk entry will be moved to archive.'
+                : 'This will archive all logs from the current week.'}
             </p>
             <div className="modal-actions">
               <button type="button" className="modal-btn ghost" onClick={() => setConfirmModal(null)}>
