@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link, Route, Routes } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import './App.css'
 
@@ -49,7 +50,7 @@ const clampNumber = (value: number, min: number, max: number) => {
   return Math.min(max, Math.max(min, Math.floor(value)))
 }
 
-function App() {
+function HomePage() {
   const [logs, setLogs] = useState<TalktimeLog[]>([])
   const [hoursInput, setHoursInput] = useState('')
   const [minutesInput, setMinutesInput] = useState('')
@@ -227,6 +228,12 @@ function App() {
   return (
     <main className="app-shell">
       <header className="hero">
+        <Link to="/archive" className="archive-icon-link" aria-label="View archived call logs">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+          </svg>
+        </Link>
         <p className="hero-eyebrow">✦ OUR LITTLE UNIVERSE ✦</p>
         <h1>Talk Time Ipsh</h1>
         <span className="week-pill">
@@ -408,6 +415,88 @@ function App() {
         </section>
       )}
     </main>
+  )
+}
+
+function ArchivePage() {
+  const [archivedLogs, setArchivedLogs] = useState<TalktimeLog[]>([])
+  const [loadingArchived, setLoadingArchived] = useState(true)
+  const [error, setError] = useState('')
+  const { start } = useMemo(() => getWeekWindow(), [])
+
+  useEffect(() => {
+    const loadArchivedLogs = async () => {
+      setLoadingArchived(true)
+      setError('')
+
+      const { data, error: fetchError } = await supabase
+        .from(tableName)
+        .select('id, day, hours, talked_about, created_at')
+        .lt('created_at', start.toISOString())
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+
+      if (fetchError) {
+        setError(`Could not load archived logs: ${fetchError.message}`)
+        setLoadingArchived(false)
+        return
+      }
+
+      setArchivedLogs(data ?? [])
+      setLoadingArchived(false)
+    }
+
+    void loadArchivedLogs()
+  }, [start])
+
+  return (
+    <main className="app-shell">
+      <header className="hero">
+        <Link to="/" className="back-link">
+          ← Back
+        </Link>
+        <p className="hero-eyebrow">✦ TIMELINE ✦</p>
+        <h2>Archived calls</h2>
+        <span className="week-pill">Calls before this week</span>
+      </header>
+
+      <section className="card history-card">
+        {loadingArchived && <p className="empty-state">Loading archived logs...</p>}
+        {!loadingArchived && archivedLogs.length === 0 && <p className="empty-state">No archived logs yet.</p>}
+
+        {!loadingArchived && archivedLogs.length > 0 && (
+          <ul>
+            {archivedLogs.map((log) => (
+              <li key={log.id}>
+                <div className="log-main">
+                  <p>{log.day}</p>
+                  <span>
+                    {new Date(log.created_at).toLocaleDateString()} · {new Date(log.created_at).toLocaleTimeString()} ·{' '}
+                    {formatDuration(Math.round(log.hours * 60))}
+                  </span>
+                  {log.talked_about ? <em>{log.talked_about}</em> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {error && (
+        <section className="card error-card">
+          <p>{error}</p>
+        </section>
+      )}
+    </main>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/archive" element={<ArchivePage />} />
+    </Routes>
   )
 }
 

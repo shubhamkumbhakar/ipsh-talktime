@@ -7,8 +7,48 @@
 }
 
 .hero {
+  position: relative;
   text-align: center;
   color: #f5ddff;
+}
+
+.archive-icon-link {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #4a3a6f;
+  border-radius: 999px;
+  background: rgba(48, 28, 85, 0.5);
+  color: #d9ccff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.archive-icon-link svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.back-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px solid #4a3a6f;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(48, 28, 85, 0.5);
+  color: #d9ccff;
+  font-size: 0.72rem;
+  text-decoration: none;
 }
 
 .hero-eyebrow {
@@ -21,6 +61,15 @@
 .hero h1 {
   margin: 10px 0 4px;
   font-size: 3rem;
+  font-style: italic;
+  line-height: 0.95;
+  font-family: Georgia, 'Times New Roman', serif;
+  text-shadow: 0 0 24px rgba(195, 109, 255, 0.6);
+}
+
+.hero h2 {
+  margin: 10px 0 4px;
+  font-size: 1.5rem;
   font-style: italic;
   line-height: 0.95;
   font-family: Georgia, 'Times New Roman', serif;
